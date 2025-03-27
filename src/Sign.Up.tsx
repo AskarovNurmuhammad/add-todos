@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "./utils/firebase.config";
-import { addDoc, collection } from "firebase/firestore";
+import { ref, set } from "firebase/database"; // Firestore emas, Realtime Database
 import { useNavigate } from "react-router-dom";
 
 const SignUp = () => {
@@ -9,13 +9,20 @@ const SignUp = () => {
   const navigate = useNavigate();
 
   function signUpUser() {
-    createUserWithEmailAndPassword(auth, user.email, user.password).then(
-      (res) => {
-        navigate("/sign-in");
-        addDoc(collection(db, "users"), user);
-      }
-    );
-    console.log(user);
+    createUserWithEmailAndPassword(auth, user.email, user.password)
+      .then((res) => {
+        const userId = res.user.uid; // Firebase auth ID
+        set(ref(db, "users/" + userId), {
+          name: user.name,
+          email: user.email,
+          password: user.password, // Parolni saqlash tavsiya etilmaydi!
+        }).then(() => {
+          navigate("/sign-in");
+        });
+      })
+      .catch((error) => {
+        console.error("Error:", error.message);
+      });
   }
 
   return (
@@ -36,10 +43,10 @@ const SignUp = () => {
         placeholder="password..."
         onChange={(e) => setUser({ ...user, password: e.target.value })}
         className="form-control mb-2"
-        type="text"
+        type="password"
       />
       <button onClick={signUpUser} className="btn btn-dark">
-        Sing Up
+        Sign Up
       </button>
     </div>
   );
